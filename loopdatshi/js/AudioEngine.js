@@ -1,2 +1,17 @@
-export const AudioContext=window.AudioContext||window.webkitAudioContext;export let audioCtx=null;export function initAudioContext(){return audioCtx||(audioCtx=new AudioContext),"suspended"===audioCtx.state&&audioCtx.resume(),audioCtx}export function getAudioContext(){return audioCtx}
-//# sourceMappingURL=AudioEngine.js.map
+// js/AudioEngine.js
+export const AudioContext = window.AudioContext || window.webkitAudioContext;
+export let audioCtx = null;
+
+export function initAudioContext() {
+    if (!audioCtx) {
+        audioCtx = new AudioContext();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    return audioCtx;
+}
+
+export function getAudioContext() {
+    return audioCtx;
+}

@@ -1,2 +1,1392 @@
-import{initAudioContext as e,getAudioContext as t}from"./AudioEngine.js";import{Track as n}from"./Track.js";import{bufferToWav as a}from"./WavEncoder.js";let i,r=[],o=[],d=null,s=null,c=1;const l=60,u=.2;let m=[],p=1,f=[],h=!1,g=0,y=!1,v=null,E={start:0,end:8},x=60,L=120,b=4,w=!0,T=Array.from({length:8},(e,t)=>({name:`Pad ${t+1}`,buffer:null})),I=0,M=!0,B=null,S=[],k=null,R=!1,P={events:[],length:0};const C=document.getElementById("recordBtn"),N=document.getElementById("trackList"),$=document.getElementById("emptyState"),X=document.getElementById("xyPad"),D=document.getElementById("xyCursor"),A=document.getElementById("fxControls"),F=document.getElementById("noTrackSelectedMsg"),O=document.getElementById("selectedTrackName"),Y=document.querySelectorAll(".effect-btn"),q=document.getElementById("globalRateSlider"),U=document.getElementById("globalRateLabel"),z=document.getElementById("resampleBtn"),j=document.getElementById("loadAudioBtn"),G=document.getElementById("audioFileInput"),H=document.getElementById("bpmInput"),_=document.getElementById("gridSelect"),V=document.getElementById("snapToggleBtn"),Q=document.getElementById("timelineBody"),J=document.getElementById("timelineRuler"),W=document.querySelector(".timeline"),K=document.getElementById("loopToggleBtn"),Z=document.getElementById("timelineLoopOverlay"),ee=document.getElementById("padGrid"),te=document.getElementById("selectedPadLabel"),ne=document.getElementById("padLoadBtn"),ae=document.getElementById("padRecordBtn"),ie=document.getElementById("padQuantizeBtn"),re=document.getElementById("padPatternRecordBtn"),oe=document.getElementById("padPatternClearBtn"),de=document.getElementById("padFileInput"),se=document.getElementById("saveDrumPresetBtn"),ce=document.getElementById("loadDrumPresetBtn"),le=document.getElementById("drumPresetInput");function ue(){return 60/Math.max(1,L)}function me(){return ue()/Math.max(1,b)}function pe(e){const t=me();return t?Math.round(e/t)*t:e}function fe(e=null){return!!w&&!(e&&e.altKey)}function he(){V&&(V.innerText=w?"Snap: On":"Snap: Off",V.style.background=w?"#2a8a58":"#444")}function ge(){ie&&(ie.innerText=M?"Pad Quantize: On":"Pad Quantize: Off",ie.style.background=M?"#2a8a58":"#444")}function ye(){re&&(re.innerText=R?"Stop Pattern":"Record Pattern",re.style.background=R?"#ff4444":"#444")}function ve(){return parseInt(getComputedStyle(document.documentElement).getPropertyValue("--drum-row-height"),10)||120}function Ee(e){return new Promise((t,n)=>{const a=new FileReader;a.onload=()=>t(a.result),a.onerror=n,a.readAsDataURL(e)})}if(K&&K.addEventListener("click",()=>{y=!y,K.innerText=y?"Loop Region: On":"Loop Region: Off",K.style.background=y?"#2a8a58":"#d68a28",Ue(),h&&ze()}),q&&(q.addEventListener("input",e=>{const t=parseFloat(e.target.value);c=t,U.innerText=`${t.toFixed(2)}x`,r.forEach(e=>e.updateLivePlaybackRate(c))}),q.addEventListener("dblclick",()=>{q.value=1,c=1,U.innerText="1.00x",r.forEach(e=>e.updateLivePlaybackRate(c))})),H){const e=parseFloat(H.value);Number.isFinite(e)&&(L=e),H.addEventListener("change",e=>{const t=parseFloat(e.target.value);Number.isFinite(t)&&(L=Math.max(40,Math.min(240,t)),H.value=L,Ae())})}if(_){const e=parseInt(_.value,10);Number.isFinite(e)&&(b=e),_.addEventListener("change",e=>{const t=parseInt(e.target.value,10);b=Number.isFinite(t)?t:4,Ae()})}async function xe(){const t=e();if("suspended"===t.state&&await t.resume(),C.classList.contains("active"))i&&"inactive"!==i.state&&i.stop(),s&&(s.getTracks().forEach(e=>e.stop()),s=null),C.classList.remove("active"),C.innerHTML='● REC <span class="shortcut">(Space)</span>';else try{const e={audio:{echoCancellation:!1,noiseSuppression:!1,autoGainControl:!1}},n=await navigator.mediaDevices.getUserMedia(e);s=n,i=new MediaRecorder(n),o=[],i.ondataavailable=e=>o.push(e.data),i.onstop=async()=>{const e=new Blob(o,{type:"audio/ogg; codecs=opus"}),n=await e.arrayBuffer();Be(await t.decodeAudioData(n))},i.start(),C.classList.add("active"),C.innerText="■ STOP (Space)"}catch(e){alert("Microphone Error: "+e.message)}}V&&(he(),V.addEventListener("click",()=>{w=!w,he()})),document.addEventListener("keydown",e=>{"Space"===e.code&&"INPUT"!==e.target.tagName&&(e.preventDefault(),xe())}),C.addEventListener("click",xe);const Le=["q","w","e","r","a","s","d","f"];function be(e){const t=Le.indexOf(e.toLowerCase());return-1===t?null:t}function we(e){if(I=Math.max(0,Math.min(T.length-1,e)),te){const e=Le[I]?Le[I].toUpperCase():"";te.innerText=`${T[I].name}${e?` (${e})`:""}`}document.querySelectorAll(".pad-btn").forEach(e=>{const t=parseInt(e.dataset.pad,10)===I;e.classList.toggle("selected",t)})}function Te(e){const t=document.querySelector(`.pad-btn[data-pad="${e}"]`);if(!t)return;const n=!!T[e].buffer;t.classList.toggle("loaded",n)}function Ie(t,n,a=!1){const i=e(),r=T[t];if(!r||!r.buffer)return;const o=i.createBufferSource();o.buffer=r.buffer,o.connect(i.destination);let d=i.currentTime+.01;if(n){const e=me();e>0&&(d=Math.ceil(d/e)*e)}o.start(d),a&&function(e,t){if(!R)return;const n=y?E.end-E.start:4*ue(),a=Math.max(u,n),i=t-g;let r=y?i-E.start:i;if(r=(r%a+a)%a,M){const e=me();e>0&&(r=Math.round(r/e)*e)}r<0||r>a||(P.length=a,Me(e,r,!0),Ae())}(t,d)}function Me(e,t,n=!1){const a=me(),i=a>0?Math.round(t/a)*a:t,r=parseFloat(i.toFixed(4));if(y||0!==P.length||(P.length=4*ue()),!n){const t=P.events.findIndex(t=>t.padIndex===e&&Math.abs(t.time-r)<5e-4);if(-1!==t)return P.events.splice(t,1),!1}return P.events.push({time:r,padIndex:e}),!0}function Be(t){$&&($.style.display="none");const a=Date.now(),i=`Loop ${r.length+1}`,o=new n(a,t,i);r.push(o),function(t){const n=document.createElement("div");n.className="loop-item",n.id=`track-${t.id}`,n.innerHTML=`\n        <button class="track-play-btn" id="play-btn-${t.id}">▶</button>\n        \n        <div class="loop-center">\n            \x3c!-- Name Input --\x3e\n            <input type="text" class="loop-name-input" value="${t.name}" id="name-${t.id}">\n            \n            <div class="loop-waveform">\n                <div class="waveform-bar" style="width:100%"></div>\n            </div>\n            \n            <div class="controls-row">\n                <div class="control-group">\n                    <span>Trim</span>\n                    <input class="slider-mini" type="range" min="0" max="100" value="0" data-id="${t.id}" data-type="start">\n                    <input class="slider-mini" type="range" min="0" max="100" value="100" data-id="${t.id}" data-type="end">\n                </div>\n                <div class="control-group">\n                    <span>Speed</span>\n                    <input class="slider-mini" type="range" min="0.1" max="2.0" step="0.05" value="1.0" data-id="${t.id}" data-type="speed" title="Double click to reset">\n                </div>\n            </div>\n        </div>\n\n        <button class="select-btn" id="sel-btn-${t.id}">EDIT FX</button>\n        <button class="delete-btn" data-id="${t.id}">✕</button>\n    `,n.querySelector(`#play-btn-${t.id}`).onclick=()=>function(t){e();const n=r.find(e=>e.id===t);if(!n)return;n.isPlaying?(n.stop(),Se(t,!1)):(n.play(c),Se(t,!0))}(t.id),n.querySelector(`#sel-btn-${t.id}`).onclick=()=>ke(t.id),n.querySelector(".delete-btn").onclick=()=>function(e){const t=r.find(t=>t.id===e);t&&t.destroy();r=r.filter(t=>t.id!==e),m=m.filter(t=>t.trackId!==e);const n=document.getElementById(`track-${e}`);n&&n.remove();d===e&&function(){d=null,F&&F.classList.remove("hidden");A&&A.classList.add("hidden");document.querySelectorAll(".loop-item").forEach(e=>e.classList.remove("selected")),document.querySelectorAll(".select-btn").forEach(e=>{e.classList.remove("active"),e.innerText="EDIT FX"})}();Ae()}(t.id);const a=n.querySelector(`#name-${t.id}`);a.addEventListener("change",e=>{t.name=e.target.value,d===t.id&&(O.innerText=t.name),Ae()}),a.addEventListener("keydown",e=>e.stopPropagation()),n.querySelectorAll('input[type="range"]').forEach(e=>{e.oninput=e=>{const n=parseFloat(e.target.value),a=e.target.dataset.type;"start"===a?(t.trimStart=n/100,t.isPlaying&&t.play(c)):"end"===a?(t.trimEnd=n/100,t.isPlaying&&t.play(c)):"speed"===a&&(t.setLocalRate(n),t.updateLivePlaybackRate(c))},"speed"===e.dataset.type&&e.addEventListener("dblclick",e=>{e.target.value=1,t.setLocalRate(1),t.updateLivePlaybackRate(c)})}),N.appendChild(n)}(o),ke(a);De(a,0,Xe(o)),o.play(c),Se(a,!0)}function Se(e,t){const n=document.getElementById(`play-btn-${e}`);n&&(n.classList.toggle("playing",t),n.innerHTML=t?"■":"▶")}function ke(e){d=e,document.querySelectorAll(".loop-item").forEach(e=>e.classList.remove("selected"));const t=document.getElementById(`track-${e}`);t&&t.classList.add("selected"),document.querySelectorAll(".select-btn").forEach(e=>{e.classList.remove("active"),e.innerText="EDIT FX"});const n=document.getElementById(`sel-btn-${e}`);n&&(n.classList.add("active"),n.innerText="EDITING"),F&&F.classList.add("hidden"),A&&A.classList.remove("hidden");const a=r.find(t=>t.id===e);O&&(O.innerText=a.name),Y.forEach(e=>{e.classList.remove("selected"),e.dataset.fx===a.currentEffect&&e.classList.add("selected")}),Ne(a.effectParams.x,a.effectParams.y),Re(a.currentEffect)}function Re(e){const t=document.getElementById("labelX"),n=document.getElementById("labelY");"filter"===e||"highpass"===e||"bandpass"===e?(t.innerText="X: Cutoff",n.innerText="Y: Res"):"autofilter"===e||"phaser"===e?(t.innerText="X: Rate",n.innerText="Y: Depth"):"flanger"===e?(t.innerText="X: Rate",n.innerText="Y: Feedback"):"chorus"===e||"tremolo"===e||"vibrato"===e?(t.innerText="X: Rate",n.innerText="Y: Depth"):"delay"===e||"echo"===e||"pingpong"===e?(t.innerText="X: Time",n.innerText="Y: Feedback"):"reverb"===e?(t.innerText="X: Size",n.innerText="Y: Mix"):"distortion"===e||"overdrive"===e||"saturation"===e?(t.innerText="X: Drive",n.innerText="Y: Tone"):"bitcrusher"===e?(t.innerText="X: Bits",n.innerText="Y: Rate"):"compressor"===e?(t.innerText="X: Thresh",n.innerText="Y: Ratio"):"limiter"===e?(t.innerText="X: Thresh",n.innerText="Y: Release"):"widener"===e?(t.innerText="X: Width",n.innerText="Y: Mix"):"panner"===e?(t.innerText="X: Pan",n.innerText="Y: Level"):"pitch"===e?(t.innerText="X: Shift",n.innerText="Y: Mix"):"harmonizer"===e?(t.innerText="X: Interval",n.innerText="Y: Mix"):"granular"===e?(t.innerText="X: Grain",n.innerText="Y: Spray"):(t.innerText="X: --",n.innerText="Y: --")}document.addEventListener("keydown",e=>{if(e.repeat)return;if(e.target&&["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName))return;const t=be(e.key);if(null===t)return;we(t),Ie(t,M,!0);const n=document.querySelector(`.pad-btn[data-pad="${t}"]`);n&&n.classList.add("active")}),document.addEventListener("keyup",e=>{const t=be(e.key);if(null===t)return;const n=document.querySelector(`.pad-btn[data-pad="${t}"]`);n&&n.classList.remove("active")}),j&&G&&(j.addEventListener("click",()=>G.click()),G.addEventListener("change",async t=>{const n=t.target.files&&t.target.files[0];if(n)try{await async function(t){if(!t)return;const n=e();"suspended"===n.state&&await n.resume();const a=await t.arrayBuffer();Be(await n.decodeAudioData(a))}(n)}catch(e){alert("Load failed: "+e.message)}finally{G.value=""}})),ee&&(we(0),ee.addEventListener("click",e=>{const t=e.target.closest(".pad-btn");if(!t)return;const n=parseInt(t.dataset.pad,10);we(n),Ie(n,M,!0)})),ne&&de&&(ne.addEventListener("click",()=>de.click()),de.addEventListener("change",async t=>{const n=t.target.files&&t.target.files[0];if(n)try{await async function(t){if(!t)return;const n=e();"suspended"===n.state&&await n.resume();const a=await t.arrayBuffer(),i=await n.decodeAudioData(a);T[I].buffer=i,Te(I)}(n)}catch(e){alert("Pad load failed: "+e.message)}finally{de.value=""}})),ae&&ae.addEventListener("click",async function(){const t=e();if("suspended"===t.state&&await t.resume(),B&&"inactive"!==B.state)B.stop();else try{const e={audio:{echoCancellation:!1,noiseSuppression:!1,autoGainControl:!1}},n=await navigator.mediaDevices.getUserMedia(e);k=n,B=new MediaRecorder(n),S=[],B.ondataavailable=e=>S.push(e.data),B.onstop=async()=>{try{const e=new Blob(S,{type:"audio/ogg; codecs=opus"}),n=await e.arrayBuffer(),a=await t.decodeAudioData(n);T[I].buffer=a,Te(I)}catch(e){alert("Pad record failed: "+e.message)}finally{k&&(k.getTracks().forEach(e=>e.stop()),k=null),ae&&(ae.classList.remove("active"),ae.innerText="Record Pad")}},B.start(),ae&&(ae.classList.add("active"),ae.innerText="Stop Pad")}catch(e){alert("Microphone Error: "+e.message)}}),ie&&(ge(),ie.addEventListener("click",()=>{M=!M,ge()})),re&&(ye(),re.addEventListener("click",()=>{R=!R,R&&!h&&ze(),ye()})),oe&&oe.addEventListener("click",()=>{P.events=[],Ae()}),se&&se.addEventListener("click",()=>{!async function(){const e={version:1,pads:[]};for(let t=0;t<T.length;t++){const n=T[t];let i=null;if(n.buffer){const e=a(n.buffer,n.buffer.length);i=await Ee(e)}e.pads.push({name:n.name,key:Le[t]?Le[t].toUpperCase():"",sample:i})}const t=new Blob([JSON.stringify(e)],{type:"application/json"}),n=URL.createObjectURL(t),i=document.createElement("a");i.href=n,i.download=`drum_preset_${Date.now()}.json`,document.body.appendChild(i),i.click(),i.remove(),URL.revokeObjectURL(n)}()}),ce&&le&&(ce.addEventListener("click",()=>le.click()),le.addEventListener("change",async t=>{const n=t.target.files&&t.target.files[0];if(n)try{await async function(t){const n=e(),a=await t.text();let i;try{i=JSON.parse(a)}catch(e){return void alert("Invalid preset file.")}if(i&&Array.isArray(i.pads)){for(let e=0;e<T.length;e++){const t=i.pads[e];if(T[e].name=t&&t.name?t.name:`Pad ${e+1}`,T[e].buffer=null,t&&t.sample)try{const a=await fetch(t.sample).then(e=>e.arrayBuffer());T[e].buffer=await n.decodeAudioData(a)}catch(t){console.warn("Failed to load pad sample",e,t)}Te(e)}we(I),Ae()}else alert("Invalid preset structure.")}(n)}catch(e){alert("Preset load failed: "+e.message)}finally{le.value=""}})),Y.forEach(e=>{e.addEventListener("click",e=>{if(!d)return;const t=e.target.dataset.fx;r.find(e=>e.id===d).setEffect(t),Y.forEach(e=>e.classList.remove("selected")),e.target.classList.add("selected"),Re(t)})});let Pe=!1;function Ce(e){if(!d)return;const t=X.getBoundingClientRect();let n=Math.max(0,Math.min(e.clientX-t.left,t.width)),a=Math.max(0,Math.min(e.clientY-t.top,t.height));const i=n/t.width,o=1-a/t.height;Ne(i,o);const s=r.find(e=>e.id===d);s&&s.updateEffectParams(i,o)}function Ne(e,t){D&&(D.style.left=100*e+"%",D.style.top=100*(1-t)+"%")}X&&(X.addEventListener("mousedown",e=>{Pe=!0,Ce(e)}),window.addEventListener("mouseup",()=>{Pe=!1}),window.addEventListener("mousemove",e=>{Pe&&Ce(e)})),document.getElementById("playAllBtn").addEventListener("click",()=>{ze()}),document.getElementById("stopAllBtn").addEventListener("click",()=>{je(),r.forEach(e=>{e.stop(),Se(e.id,!1)}),R&&(R=!1,ye())});let $e=!1;function Xe(e){const t=e.buffer.duration*(e.trimEnd-e.trimStart),n=Math.max(.1,e.localRate);return Math.max(u,t/n)}function De(e,t,n){const a=me(),i=w?pe(t):t;let r=n;w&&a>0&&(r=Math.round(n/a)*a);const o={id:p++,trackId:e,start:Math.max(0,i),duration:Math.max(u,r)};m.push(o),Ae()}function Ae(){if(!Q||!J)return;const e=function(){const e=m.reduce((e,t)=>Math.max(e,t.start+t.duration),0);return Math.max(60,Math.ceil(e+5))}();x=e;const t=e*l;J.innerHTML="",J.style.width=`${t}px`;const n=ue(),a=Math.ceil(e/n);for(let e=0;e<=a;e++){const t=document.createElement("div"),a=e%4==0;if(t.className="timeline-tick"+(a?" major":""),t.style.left=e*n*l+"px",J.appendChild(t),a){const t=document.createElement("div");t.className="timeline-tick-label",t.style.left=e*n*l+"px",t.innerText=`${Math.floor(e/4)+1}`,J.appendChild(t)}}!function(){if(!J)return;E.end-E.start<u&&(E.end=E.start+1);E.start=Math.max(0,Math.min(E.start,x-u)),E.end=Math.max(E.start+u,Math.min(E.end,x));const e=document.createElement("div");e.className="timeline-loop-region",e.style.left=E.start*l+"px",e.style.width=(E.end-E.start)*l+"px",e.innerText=y?"LOOP":"REGION";const t=document.createElement("div");t.className="loop-handle left";const n=document.createElement("div");if(n.className="loop-handle right",e.appendChild(t),e.appendChild(n),e.addEventListener("mousedown",e=>qe(e,"move")),t.addEventListener("mousedown",e=>qe(e,"resize-left")),n.addEventListener("mousedown",e=>qe(e,"resize-right")),e.addEventListener("dblclick",e=>e.stopPropagation()),J.appendChild(e),Z){Z.style.left=E.start*l+"px",Z.style.width=(E.end-E.start)*l+"px";const e=parseInt(getComputedStyle(document.documentElement).getPropertyValue("--timeline-row-height"))||56,t=ve();Z.style.height=`${t+r.length*e}px`}}(),Q.innerHTML="";const i=document.createElement("div");i.className="timeline-row drum-row";const o=document.createElement("div");o.className="timeline-label",o.innerText="DRUMS";const d=document.createElement("div");d.className="timeline-lane drum-lane",d.style.width=`${t}px`;const s=ve()/T.length;T.forEach((e,t)=>{const n=document.createElement("div");n.className="drum-subrow",n.dataset.pad=t,n.style.top=t*s+"px",d.appendChild(n)}),P.events.forEach(e=>{const t=document.createElement("div");t.className="drum-hit",t.dataset.pad=e.padIndex,t.dataset.time=e.time,t.style.left=e.time*l+"px",t.style.top=e.padIndex*s+"px",t.style.width=`${Math.max(10,me()*l-2)}px`,t.innerText=Le[e.padIndex]?Le[e.padIndex].toUpperCase():"",t.addEventListener("click",e=>{e.stopPropagation();const n=parseInt(t.dataset.pad,10),a=parseFloat(t.dataset.time),i=P.events.findIndex(e=>e.padIndex===n&&Math.abs(e.time-a)<5e-4);-1!==i&&P.events.splice(i,1),Ae()}),d.appendChild(t)}),d.addEventListener("click",e=>{const t=d.getBoundingClientRect(),n=W?W.scrollLeft:0,a=Math.max(0,e.clientX-t.left+n),i=Math.max(0,e.clientY-t.top);Me(Math.min(T.length-1,Math.max(0,Math.floor(i/s))),a/l,!1),Ae()}),i.appendChild(o),i.appendChild(d),Q.appendChild(i),r.forEach(e=>{const n=document.createElement("div");n.className="timeline-row";const a=document.createElement("div");a.className="timeline-label",a.innerText=e.name;const i=document.createElement("div");i.className="timeline-lane",i.dataset.trackId=e.id,i.style.width=`${t}px`,i.addEventListener("dblclick",t=>{const n=i.getBoundingClientRect(),a=W?W.scrollLeft:0,r=Math.max(0,t.clientX-n.left+a)/l;De(e.id,r,Xe(e))}),m.filter(t=>t.trackId===e.id).forEach(t=>{const n=document.createElement("div");n.className="timeline-clip",n.dataset.clipId=t.id,n.style.left=t.start*l+"px",n.style.width=t.duration*l+"px",n.innerText=e.name;const a=document.createElement("div");a.className="clip-handle left";const r=document.createElement("div");r.className="clip-handle right",n.appendChild(a),n.appendChild(r),n.addEventListener("mousedown",e=>Ye(e,t.id,"move")),n.addEventListener("dblclick",e=>e.stopPropagation()),a.addEventListener("mousedown",e=>Ye(e,t.id,"resize-left")),r.addEventListener("mousedown",e=>Ye(e,t.id,"resize-right")),i.appendChild(n)}),n.appendChild(a),n.appendChild(i),Q.appendChild(n)})}z&&z.addEventListener("click",async()=>{if(!d)return;const t=e(),n=r.find(e=>e.id===d);if($e)i&&"inactive"!==i.state&&i.stop(),n.stop(),Se(n.id,!1),z.innerHTML="⚠ Resample (Record FX)",z.classList.remove("active"),C.disabled=!1,z.style.background="#d68a28",$e=!1;else{C.disabled=!0;const e=t.createMediaStreamDestination();n.gainNode.connect(e),i=new MediaRecorder(e.stream),o=[],i.ondataavailable=e=>o.push(e.data),i.onstop=async()=>{const a=new Blob(o,{type:"audio/ogg; codecs=opus"}),i=await a.arrayBuffer();Be(await t.decodeAudioData(i)),n.gainNode.disconnect(e)},i.start(),n.play(c),Se(n.id,!0),$e=!0,z.innerHTML="■ STOP RESAMPLE",z.style.background="#ff4444",z.classList.add("active")}});let Fe=null,Oe=null;function Ye(e,t,n){e.stopPropagation(),e.preventDefault();const a=m.find(e=>e.id===t);a&&(Fe={clipId:t,mode:n,startX:e.clientX,origStart:a.start,origDuration:a.duration})}function qe(e,t){e.stopPropagation(),e.preventDefault(),Oe={mode:t,startX:e.clientX,origStart:E.start,origEnd:E.end}}function Ue(){const e=document.querySelector(".timeline-loop-region");if(e&&(e.style.left=E.start*l+"px",e.style.width=(E.end-E.start)*l+"px",e.innerText=y?"LOOP":"REGION"),Z){Z.style.left=E.start*l+"px",Z.style.width=(E.end-E.start)*l+"px";const e=parseInt(getComputedStyle(document.documentElement).getPropertyValue("--timeline-row-height"))||56,t=ve();Z.style.height=`${t+r.length*e}px`}}function ze(){const t=e();if(je(),0===m.length)return;r.forEach(e=>{e.stop(),Se(e.id,!1)}),f=[],h=!0;const n=t.currentTime+.05;if(g=y?n-E.start:n,y){const e=Math.max(u,E.end-E.start);let a=n;const i=()=>{if(!h||!y)return;Ge(a,E.start,E.end),a+=e;const n=Math.max(20,1e3*(a-t.currentTime-.1));v=window.setTimeout(i,n)};i()}else Ge(n,0,Number.POSITIVE_INFINITY)}function je(){f.forEach(e=>{try{e.stop()}catch(e){}try{e.disconnect()}catch(e){}}),f=[],h=!1,v&&(window.clearTimeout(v),v=null)}function Ge(t,n,a){const i=e();!function(t,n,a){if(!P.events.length)return;const i=e(),r=t-n,o=y?E.start:0,d=y?E.end-E.start:P.length||4*ue(),s=Math.max(u,d);P.events.forEach(e=>{if(!T[e.padIndex]||!T[e.padIndex].buffer)return;let t=o+e.time;if(y&&(t=o+e.time%s),t<n||t>=a)return;const d=r+t;if(d<i.currentTime)return;const c=i.createBufferSource();c.buffer=T[e.padIndex].buffer,c.connect(i.destination),c.start(d),f.push(c)})}(t,n,a),m.forEach(e=>{const o=e.start,d=e.start+e.duration,s=Math.max(o,n),l=Math.min(d,a);if(l<=s)return;const u=r.find(t=>t.id===e.trackId);if(!u)return;const m=i.createBufferSource();m.buffer=u.buffer,m.loop=!0;const p=u.buffer.duration;m.loopStart=p*u.trimStart,m.loopEnd=p*u.trimEnd,m.loopEnd-m.loopStart<.01&&(m.loop=!1);const h=u.localRate*c,g=Math.max(.1,Math.min(h,4));m.playbackRate.value=g;const y=s-o,v=m.loopStart+y*g,E=t+(s-n),x=t+(l-n);m.connect(u.fxInput),m.start(E,v),m.stop(x),f.push(m)})}window.addEventListener("mousemove",e=>{if(!Fe)return;const t=m.find(e=>e.id===Fe.clipId);if(!t)return;const n=(e.clientX-Fe.startX)/l,a=fe(e);if("move"===Fe.mode){const e=Fe.origStart+n,i=a?pe(e):e;t.start=Math.max(0,i)}else if("resize-left"===Fe.mode){const e=Fe.origStart+Fe.origDuration;let i=Fe.origStart+n;a&&(i=pe(i)),i=Math.max(0,Math.min(i,e-u)),t.start=i,t.duration=Math.max(u,e-i)}else if("resize-right"===Fe.mode){let e=Fe.origStart+Fe.origDuration+n;a&&(e=pe(e)),t.duration=Math.max(u,e-Fe.origStart)}const i=document.querySelector(`.timeline-clip[data-clip-id="${t.id}"]`);i&&(i.style.left=t.start*l+"px",i.style.width=t.duration*l+"px")}),window.addEventListener("mouseup",()=>{Fe&&(Fe=null,Ae())}),window.addEventListener("mousemove",e=>{if(!Oe)return;const t=(e.clientX-Oe.startX)/l,n=fe(e);if("move"===Oe.mode){const e=Oe.origEnd-Oe.origStart;let a=Oe.origStart+t;n&&(a=pe(a)),a=Math.max(0,Math.min(a,x-e)),E.start=a,E.end=a+e}else if("resize-left"===Oe.mode){let e=Oe.origStart+t;n&&(e=pe(e)),e=Math.max(0,Math.min(e,E.end-u)),E.start=e}else if("resize-right"===Oe.mode){let e=Oe.origEnd+t;n&&(e=pe(e)),e=Math.max(E.start+u,Math.min(e,x)),E.end=e}Ue()}),window.addEventListener("mouseup",()=>{Oe&&(Oe=null,Ae(),h&&y&&ze())});const He=document.getElementById("exportBtn");He&&He.addEventListener("click",async()=>{if(0===r.length)return alert("No tracks to export.");const e=He.innerText;He.innerText="Rendering...",He.disabled=!0;try{let e=0;r.forEach(t=>{const n=t.buffer.duration*(t.trimEnd-t.trimStart)/(t.localRate*c);n>e&&(e=n)});const t=Math.max(4*e,10),i=new OfflineAudioContext(2,Math.ceil(44100*t),44100);r.forEach(e=>{const t=new n(e.id,e.buffer,"Ghost");t.initAudioGraph(i),t.currentEffect=e.currentEffect,t.effectParams=e.effectParams,t.trimStart=e.trimStart,t.trimEnd=e.trimEnd,t.localRate=e.localRate,t.refreshEffectRouting(),t.updateEffectParams(e.effectParams.x,e.effectParams.y),t.gainNode.connect(i.destination);const a=i.createBufferSource();a.buffer=e.buffer,a.loop=!0;const r=e.buffer.duration;a.loopStart=r*e.trimStart,a.loopEnd=r*e.trimEnd,a.loopEnd-a.loopStart<.01&&(a.loop=!1);const o=e.localRate*c;a.playbackRate.value=o,a.connect(t.fxInput),a.start(0,a.loopStart)});const o=await i.startRendering(),d=a(o,o.length),s=URL.createObjectURL(d),l=document.createElement("a");l.href=s,l.download=`LoopStation_Mix_${Date.now()}.wav`,document.body.appendChild(l),l.click(),l.remove()}catch(e){console.error(e),alert("Export failed: "+e.message)}He.innerText=e,He.disabled=!1}),Ae();
-//# sourceMappingURL=main.js.map
+import { initAudioContext, getAudioContext } from './AudioEngine.js';
+import { Track } from './Track.js';
+import { bufferToWav } from './WavEncoder.js';
+
+// --- State ---
+let tracks = [];
+let mediaRecorder;
+let chunks = [];
+let selectedTrackId = null;
+let currentStream = null;
+let globalPlaybackRate = 1.0; // Global Tempo
+const TIMELINE_SCALE = 60; // pixels per second
+const MIN_CLIP_DURATION = 0.2;
+const DEFAULT_TIMELINE_SECONDS = 60;
+
+let clips = [];
+let clipIdCounter = 1;
+let arrangementSources = [];
+let arrangementPlaying = false;
+let arrangementStartTime = 0;
+let loopEnabled = false;
+let loopTimer = null;
+let loopRegion = { start: 0, end: 8 };
+let timelineSecondsState = DEFAULT_TIMELINE_SECONDS;
+let bpm = 120;
+let beatsPerBar = 4;
+let gridDivision = 4; // 1=quarter, 2=eighth, 4=sixteenth, 8=thirty-second
+let snapEnabled = true;
+
+let padBank = Array.from({ length: 8 }, (_, i) => ({
+    name: `Pad ${i + 1}`,
+    buffer: null
+}));
+let selectedPadIndex = 0;
+let padQuantizeEnabled = true;
+let padRecorder = null;
+let padChunks = [];
+let padStream = null;
+let drumRecording = false;
+let drumPattern = { events: [], length: 0 };
+
+// --- UI References ---
+const recordBtn = document.getElementById('recordBtn');
+const trackList = document.getElementById('trackList');
+const emptyState = document.getElementById('emptyState');
+const xyPad = document.getElementById('xyPad');
+const xyCursor = document.getElementById('xyCursor');
+const fxControls = document.getElementById('fxControls');
+const noTrackSelectedMsg = document.getElementById('noTrackSelectedMsg');
+const selectedTrackName = document.getElementById('selectedTrackName');
+const effectButtons = document.querySelectorAll('.effect-btn');
+const globalRateSlider = document.getElementById('globalRateSlider');
+const globalRateLabel = document.getElementById('globalRateLabel');
+const resampleBtn = document.getElementById('resampleBtn');
+const loadAudioBtn = document.getElementById('loadAudioBtn');
+const audioFileInput = document.getElementById('audioFileInput');
+const bpmInput = document.getElementById('bpmInput');
+const gridSelect = document.getElementById('gridSelect');
+const snapToggleBtn = document.getElementById('snapToggleBtn');
+const timelineBody = document.getElementById('timelineBody');
+const timelineRuler = document.getElementById('timelineRuler');
+const timelineEl = document.querySelector('.timeline');
+const loopToggleBtn = document.getElementById('loopToggleBtn');
+const timelineLoopOverlay = document.getElementById('timelineLoopOverlay');
+const padGrid = document.getElementById('padGrid');
+const selectedPadLabel = document.getElementById('selectedPadLabel');
+const padLoadBtn = document.getElementById('padLoadBtn');
+const padRecordBtn = document.getElementById('padRecordBtn');
+const padQuantizeBtn = document.getElementById('padQuantizeBtn');
+const padPatternRecordBtn = document.getElementById('padPatternRecordBtn');
+const padPatternClearBtn = document.getElementById('padPatternClearBtn');
+const padFileInput = document.getElementById('padFileInput');
+const saveDrumPresetBtn = document.getElementById('saveDrumPresetBtn');
+const loadDrumPresetBtn = document.getElementById('loadDrumPresetBtn');
+const drumPresetInput = document.getElementById('drumPresetInput');
+
+if (loopToggleBtn) {
+    loopToggleBtn.addEventListener('click', () => {
+        loopEnabled = !loopEnabled;
+        loopToggleBtn.innerText = loopEnabled ? "Loop Region: On" : "Loop Region: Off";
+        loopToggleBtn.style.background = loopEnabled ? "#2a8a58" : "#d68a28";
+        updateLoopRegionUI();
+        if (arrangementPlaying) playArrangement();
+    });
+}
+
+// --- Global Tempo Listener ---
+if (globalRateSlider) {
+    globalRateSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        globalPlaybackRate = val;
+        globalRateLabel.innerText = `${val.toFixed(2)}x`;
+        
+        // Update all playing tracks immediately
+        tracks.forEach(t => t.updateLivePlaybackRate(globalPlaybackRate));
+    });
+    // Double click to reset
+    globalRateSlider.addEventListener('dblclick', () => {
+        globalRateSlider.value = 1.0;
+        globalPlaybackRate = 1.0;
+        globalRateLabel.innerText = "1.00x";
+        tracks.forEach(t => t.updateLivePlaybackRate(globalPlaybackRate));
+    });
+}
+
+function getSecondsPerBeat() {
+    return 60 / Math.max(1, bpm);
+}
+
+function getGridStepSeconds() {
+    return getSecondsPerBeat() / Math.max(1, gridDivision);
+}
+
+function snapTime(seconds) {
+    const step = getGridStepSeconds();
+    if (!step) return seconds;
+    return Math.round(seconds / step) * step;
+}
+
+function isSnapActive(e = null) {
+    if (!snapEnabled) return false;
+    return !(e && e.altKey);
+}
+
+function updateSnapToggleUI() {
+    if (!snapToggleBtn) return;
+    snapToggleBtn.innerText = snapEnabled ? "Snap: On" : "Snap: Off";
+    snapToggleBtn.style.background = snapEnabled ? "#2a8a58" : "#444";
+}
+
+function updatePadQuantizeUI() {
+    if (!padQuantizeBtn) return;
+    padQuantizeBtn.innerText = padQuantizeEnabled ? "Pad Quantize: On" : "Pad Quantize: Off";
+    padQuantizeBtn.style.background = padQuantizeEnabled ? "#2a8a58" : "#444";
+}
+
+function updateDrumRecordUI() {
+    if (!padPatternRecordBtn) return;
+    padPatternRecordBtn.innerText = drumRecording ? "Stop Pattern" : "Record Pattern";
+    padPatternRecordBtn.style.background = drumRecording ? "#ff4444" : "#444";
+}
+
+function getDrumRowHeight() {
+    return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--drum-row-height'), 10) || 120;
+}
+
+function blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
+
+if (bpmInput) {
+    const initial = parseFloat(bpmInput.value);
+    if (Number.isFinite(initial)) bpm = initial;
+    bpmInput.addEventListener('change', (e) => {
+        const val = parseFloat(e.target.value);
+        if (!Number.isFinite(val)) return;
+        bpm = Math.max(40, Math.min(240, val));
+        bpmInput.value = bpm;
+        renderTimeline();
+    });
+}
+
+if (gridSelect) {
+    const initial = parseInt(gridSelect.value, 10);
+    if (Number.isFinite(initial)) gridDivision = initial;
+    gridSelect.addEventListener('change', (e) => {
+        const val = parseInt(e.target.value, 10);
+        gridDivision = Number.isFinite(val) ? val : 4;
+        renderTimeline();
+    });
+}
+
+if (snapToggleBtn) {
+    updateSnapToggleUI();
+    snapToggleBtn.addEventListener('click', () => {
+        snapEnabled = !snapEnabled;
+        updateSnapToggleUI();
+    });
+}
+
+// --- Recording ---
+async function toggleRecording() {
+    const ctx = initAudioContext();
+    if (ctx.state === 'suspended') await ctx.resume();
+
+    if (recordBtn.classList.contains('active')) {
+        // Stop
+        if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+            currentStream = null;
+        }
+        recordBtn.classList.remove('active');
+        recordBtn.innerHTML = `● REC <span class="shortcut">(Space)</span>`;
+    } else {
+        // Start
+        try {
+            const constraints = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }};
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            currentStream = stream;
+
+            mediaRecorder = new MediaRecorder(stream);
+            chunks = [];
+            mediaRecorder.ondataavailable = e => chunks.push(e.data);
+            mediaRecorder.onstop = async () => {
+                const blob = new Blob(chunks, { 'type' : 'audio/ogg; codecs=opus' });
+                const arrayBuffer = await blob.arrayBuffer();
+                const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+                createTrack(audioBuffer);
+            };
+            mediaRecorder.start();
+            recordBtn.classList.add('active');
+            recordBtn.innerText = "■ STOP (Space)";
+        } catch (err) {
+            alert("Microphone Error: " + err.message);
+        }
+    }
+}
+
+document.addEventListener('keydown', (e) => {
+    // Ignore spacebar if user is typing in a text box
+    if (e.code === "Space" && e.target.tagName !== 'INPUT') {
+        e.preventDefault();
+        toggleRecording();
+    }
+});
+recordBtn.addEventListener('click', toggleRecording);
+
+const PAD_KEYS = ['q', 'w', 'e', 'r', 'a', 's', 'd', 'f'];
+function getPadIndexForKey(key) {
+    const idx = PAD_KEYS.indexOf(key.toLowerCase());
+    return idx === -1 ? null : idx;
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.repeat) return;
+    if (e.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+    const idx = getPadIndexForKey(e.key);
+    if (idx === null) return;
+    selectPad(idx);
+    playPad(idx, padQuantizeEnabled, true);
+    const btn = document.querySelector(`.pad-btn[data-pad="${idx}"]`);
+    if (btn) btn.classList.add('active');
+});
+
+document.addEventListener('keyup', (e) => {
+    const idx = getPadIndexForKey(e.key);
+    if (idx === null) return;
+    const btn = document.querySelector(`.pad-btn[data-pad="${idx}"]`);
+    if (btn) btn.classList.remove('active');
+});
+
+// --- Load Audio Files ---
+async function handleAudioFile(file) {
+    if (!file) return;
+    const ctx = initAudioContext();
+    if (ctx.state === 'suspended') await ctx.resume();
+    const arrayBuffer = await file.arrayBuffer();
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+    createTrack(audioBuffer);
+}
+
+if (loadAudioBtn && audioFileInput) {
+    loadAudioBtn.addEventListener('click', () => audioFileInput.click());
+    audioFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+            await handleAudioFile(file);
+        } catch (err) {
+            alert("Load failed: " + err.message);
+        } finally {
+            audioFileInput.value = '';
+        }
+    });
+}
+
+// --- Drum Pads ---
+function selectPad(index) {
+    selectedPadIndex = Math.max(0, Math.min(padBank.length - 1, index));
+    if (selectedPadLabel) {
+        const key = PAD_KEYS[selectedPadIndex] ? PAD_KEYS[selectedPadIndex].toUpperCase() : '';
+        selectedPadLabel.innerText = `${padBank[selectedPadIndex].name}${key ? ` (${key})` : ''}`;
+    }
+    document.querySelectorAll('.pad-btn').forEach(btn => {
+        const isSelected = parseInt(btn.dataset.pad, 10) === selectedPadIndex;
+        btn.classList.toggle('selected', isSelected);
+    });
+}
+
+function updatePadButtonUI(index) {
+    const btn = document.querySelector(`.pad-btn[data-pad="${index}"]`);
+    if (!btn) return;
+    const isLoaded = !!padBank[index].buffer;
+    btn.classList.toggle('loaded', isLoaded);
+}
+
+function recordPadEvent(index, when) {
+    if (!drumRecording) return;
+    const baseLength = loopEnabled ? (loopRegion.end - loopRegion.start) : (beatsPerBar * getSecondsPerBeat());
+    const loopLength = Math.max(MIN_CLIP_DURATION, baseLength);
+    const timelinePos = when - arrangementStartTime;
+    let posInLoop = loopEnabled ? (timelinePos - loopRegion.start) : timelinePos;
+    posInLoop = ((posInLoop % loopLength) + loopLength) % loopLength;
+    if (padQuantizeEnabled) {
+        const step = getGridStepSeconds();
+        if (step > 0) posInLoop = Math.round(posInLoop / step) * step;
+    }
+    if (posInLoop < 0 || posInLoop > loopLength) return;
+    drumPattern.length = loopLength;
+    addDrumHit(index, posInLoop, true);
+    renderTimeline();
+}
+
+function playPad(index, quantize, shouldRecord = false) {
+    const ctx = initAudioContext();
+    const pad = padBank[index];
+    if (!pad || !pad.buffer) return;
+    const source = ctx.createBufferSource();
+    source.buffer = pad.buffer;
+    source.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    let startTime = now + 0.01;
+    if (quantize) {
+        const step = getGridStepSeconds();
+        if (step > 0) {
+            startTime = Math.ceil(startTime / step) * step;
+        }
+    }
+    source.start(startTime);
+    if (shouldRecord) recordPadEvent(index, startTime);
+}
+
+function addDrumHit(padIndex, timeSec, allowDuplicate = false) {
+    const step = getGridStepSeconds();
+    const snapped = step > 0 ? Math.round(timeSec / step) * step : timeSec;
+    const keyTime = parseFloat(snapped.toFixed(4));
+    if (!loopEnabled && drumPattern.length === 0) {
+        drumPattern.length = beatsPerBar * getSecondsPerBeat();
+    }
+    if (!allowDuplicate) {
+        const existingIndex = drumPattern.events.findIndex(ev => ev.padIndex === padIndex && Math.abs(ev.time - keyTime) < 0.0005);
+        if (existingIndex !== -1) {
+            drumPattern.events.splice(existingIndex, 1);
+            return false;
+        }
+    }
+    drumPattern.events.push({ time: keyTime, padIndex });
+    return true;
+}
+
+async function handlePadFile(file) {
+    if (!file) return;
+    const ctx = initAudioContext();
+    if (ctx.state === 'suspended') await ctx.resume();
+    const arrayBuffer = await file.arrayBuffer();
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+    padBank[selectedPadIndex].buffer = audioBuffer;
+    updatePadButtonUI(selectedPadIndex);
+}
+
+async function togglePadRecording() {
+    const ctx = initAudioContext();
+    if (ctx.state === 'suspended') await ctx.resume();
+
+    if (padRecorder && padRecorder.state !== 'inactive') {
+        padRecorder.stop();
+        return;
+    }
+
+    try {
+        const constraints = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }};
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        padStream = stream;
+        padRecorder = new MediaRecorder(stream);
+        padChunks = [];
+        padRecorder.ondataavailable = e => padChunks.push(e.data);
+        padRecorder.onstop = async () => {
+            try {
+                const blob = new Blob(padChunks, { 'type' : 'audio/ogg; codecs=opus' });
+                const arrayBuffer = await blob.arrayBuffer();
+                const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+                padBank[selectedPadIndex].buffer = audioBuffer;
+                updatePadButtonUI(selectedPadIndex);
+            } catch (err) {
+                alert("Pad record failed: " + err.message);
+            } finally {
+                if (padStream) {
+                    padStream.getTracks().forEach(track => track.stop());
+                    padStream = null;
+                }
+                if (padRecordBtn) {
+                    padRecordBtn.classList.remove('active');
+                    padRecordBtn.innerText = "Record Pad";
+                }
+            }
+        };
+        padRecorder.start();
+        if (padRecordBtn) {
+            padRecordBtn.classList.add('active');
+            padRecordBtn.innerText = "Stop Pad";
+        }
+    } catch (err) {
+        alert("Microphone Error: " + err.message);
+    }
+}
+
+if (padGrid) {
+    selectPad(0);
+    padGrid.addEventListener('click', (e) => {
+        const btn = e.target.closest('.pad-btn');
+        if (!btn) return;
+        const index = parseInt(btn.dataset.pad, 10);
+        selectPad(index);
+        playPad(index, padQuantizeEnabled, true);
+    });
+}
+
+if (padLoadBtn && padFileInput) {
+    padLoadBtn.addEventListener('click', () => padFileInput.click());
+    padFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+            await handlePadFile(file);
+        } catch (err) {
+            alert("Pad load failed: " + err.message);
+        } finally {
+            padFileInput.value = '';
+        }
+    });
+}
+
+if (padRecordBtn) {
+    padRecordBtn.addEventListener('click', togglePadRecording);
+}
+
+if (padQuantizeBtn) {
+    updatePadQuantizeUI();
+    padQuantizeBtn.addEventListener('click', () => {
+        padQuantizeEnabled = !padQuantizeEnabled;
+        updatePadQuantizeUI();
+    });
+}
+
+if (padPatternRecordBtn) {
+    updateDrumRecordUI();
+    padPatternRecordBtn.addEventListener('click', () => {
+        drumRecording = !drumRecording;
+        if (drumRecording && !arrangementPlaying) {
+            playArrangement();
+        }
+        updateDrumRecordUI();
+    });
+}
+
+if (padPatternClearBtn) {
+    padPatternClearBtn.addEventListener('click', () => {
+        drumPattern.events = [];
+        renderTimeline();
+    });
+}
+
+// --- Drum Presets ---
+async function exportDrumPreset() {
+    const preset = {
+        version: 1,
+        pads: []
+    };
+
+    for (let i = 0; i < padBank.length; i++) {
+        const pad = padBank[i];
+        let sample = null;
+        if (pad.buffer) {
+            const wavBlob = bufferToWav(pad.buffer, pad.buffer.length);
+            sample = await blobToDataUrl(wavBlob);
+        }
+        preset.pads.push({
+            name: pad.name,
+            key: PAD_KEYS[i] ? PAD_KEYS[i].toUpperCase() : '',
+            sample
+        });
+    }
+
+    const blob = new Blob([JSON.stringify(preset)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `drum_preset_${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
+
+async function importDrumPreset(file) {
+    const ctx = initAudioContext();
+    const text = await file.text();
+    let preset;
+    try {
+        preset = JSON.parse(text);
+    } catch (err) {
+        alert("Invalid preset file.");
+        return;
+    }
+    if (!preset || !Array.isArray(preset.pads)) {
+        alert("Invalid preset structure.");
+        return;
+    }
+
+    for (let i = 0; i < padBank.length; i++) {
+        const data = preset.pads[i];
+        padBank[i].name = data && data.name ? data.name : `Pad ${i + 1}`;
+        padBank[i].buffer = null;
+        if (data && data.sample) {
+            try {
+                const arrayBuffer = await fetch(data.sample).then(res => res.arrayBuffer());
+                padBank[i].buffer = await ctx.decodeAudioData(arrayBuffer);
+            } catch (err) {
+                console.warn("Failed to load pad sample", i, err);
+            }
+        }
+        updatePadButtonUI(i);
+    }
+    selectPad(selectedPadIndex);
+    renderTimeline();
+}
+
+if (saveDrumPresetBtn) {
+    saveDrumPresetBtn.addEventListener('click', () => {
+        exportDrumPreset();
+    });
+}
+
+if (loadDrumPresetBtn && drumPresetInput) {
+    loadDrumPresetBtn.addEventListener('click', () => drumPresetInput.click());
+    drumPresetInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+            await importDrumPreset(file);
+        } catch (err) {
+            alert("Preset load failed: " + err.message);
+        } finally {
+            drumPresetInput.value = '';
+        }
+    });
+}
+
+// --- Track Management ---
+function createTrack(buffer) {
+    if(emptyState) emptyState.style.display = 'none';
+    const id = Date.now();
+    const name = `Loop ${tracks.length + 1}`;
+    
+    const newTrack = new Track(id, buffer, name);
+    tracks.push(newTrack);
+    
+    renderTrackUI(newTrack);
+    selectTrack(id);
+
+    const clipDuration = getDefaultClipDuration(newTrack);
+    createClip(id, 0, clipDuration);
+    
+    // Play immediately using current global rate
+    newTrack.play(globalPlaybackRate);
+    updatePlayButtonUI(id, true);
+}
+
+function renderTrackUI(track) {
+    const div = document.createElement('div');
+    div.className = 'loop-item';
+    div.id = `track-${track.id}`;
+    
+    div.innerHTML = `
+        <button class="track-play-btn" id="play-btn-${track.id}">▶</button>
+        
+        <div class="loop-center">
+            <!-- Name Input -->
+            <input type="text" class="loop-name-input" value="${track.name}" id="name-${track.id}">
+            
+            <div class="loop-waveform">
+                <div class="waveform-bar" style="width:100%"></div>
+            </div>
+            
+            <div class="controls-row">
+                <div class="control-group">
+                    <span>Trim</span>
+                    <input class="slider-mini" type="range" min="0" max="100" value="0" data-id="${track.id}" data-type="start">
+                    <input class="slider-mini" type="range" min="0" max="100" value="100" data-id="${track.id}" data-type="end">
+                </div>
+                <div class="control-group">
+                    <span>Speed</span>
+                    <input class="slider-mini" type="range" min="0.1" max="2.0" step="0.05" value="1.0" data-id="${track.id}" data-type="speed" title="Double click to reset">
+                </div>
+            </div>
+        </div>
+
+        <button class="select-btn" id="sel-btn-${track.id}">EDIT FX</button>
+        <button class="delete-btn" data-id="${track.id}">✕</button>
+    `;
+
+    // Listeners
+    div.querySelector(`#play-btn-${track.id}`).onclick = () => togglePlay(track.id);
+    div.querySelector(`#sel-btn-${track.id}`).onclick = () => selectTrack(track.id);
+    div.querySelector(`.delete-btn`).onclick = () => deleteTrack(track.id);
+    
+    // Name Change Listener
+    const nameInput = div.querySelector(`#name-${track.id}`);
+    nameInput.addEventListener('change', (e) => {
+        track.name = e.target.value;
+        if(selectedTrackId === track.id) selectedTrackName.innerText = track.name;
+        renderTimeline();
+    });
+    // Stop spacebar from triggering record when typing name
+    nameInput.addEventListener('keydown', (e) => e.stopPropagation());
+
+    // Slider Listeners
+    div.querySelectorAll('input[type="range"]').forEach(input => {
+        input.oninput = (e) => {
+            const val = parseFloat(e.target.value);
+            const type = e.target.dataset.type;
+
+            if (type === 'start') {
+                track.trimStart = val / 100;
+                if(track.isPlaying) track.play(globalPlaybackRate); // Restart to sync trim
+            } 
+            else if (type === 'end') {
+                track.trimEnd = val / 100;
+                if(track.isPlaying) track.play(globalPlaybackRate);
+            }
+            else if (type === 'speed') {
+                track.setLocalRate(val);
+                track.updateLivePlaybackRate(globalPlaybackRate);
+            }
+        };
+        
+        // Reset speed on double click
+        if (input.dataset.type === 'speed') {
+            input.addEventListener('dblclick', (e) => {
+                e.target.value = 1.0;
+                track.setLocalRate(1.0);
+                track.updateLivePlaybackRate(globalPlaybackRate);
+            });
+        }
+    });
+
+    trackList.appendChild(div);
+}
+
+// --- Logic ---
+function togglePlay(id) {
+    initAudioContext();
+    const track = tracks.find(t => t.id === id);
+    if (!track) return;
+
+    if (track.isPlaying) {
+        track.stop();
+        updatePlayButtonUI(id, false);
+    } else {
+        track.play(globalPlaybackRate);
+        updatePlayButtonUI(id, true);
+    }
+}
+
+function updatePlayButtonUI(id, isPlaying) {
+    const btn = document.getElementById(`play-btn-${id}`);
+    if(btn) {
+        btn.classList.toggle('playing', isPlaying);
+        btn.innerHTML = isPlaying ? "■" : "▶";
+    }
+}
+
+function deleteTrack(id) {
+    const track = tracks.find(t => t.id === id);
+    if(track) track.destroy();
+    
+    tracks = tracks.filter(t => t.id !== id);
+    clips = clips.filter(c => c.trackId !== id);
+    const el = document.getElementById(`track-${id}`);
+    if(el) el.remove();
+    
+    if(selectedTrackId === id) deselectAll();
+    renderTimeline();
+}
+
+// --- Selection & FX ---
+function selectTrack(id) {
+    selectedTrackId = id;
+    document.querySelectorAll('.loop-item').forEach(el => el.classList.remove('selected'));
+    const trackEl = document.getElementById(`track-${id}`);
+    if(trackEl) trackEl.classList.add('selected');
+
+    document.querySelectorAll('.select-btn').forEach(b => {
+        b.classList.remove('active');
+        b.innerText = "EDIT FX";
+    });
+    const selBtn = document.getElementById(`sel-btn-${id}`);
+    if(selBtn) {
+        selBtn.classList.add('active');
+        selBtn.innerText = "EDITING";
+    }
+
+    if(noTrackSelectedMsg) noTrackSelectedMsg.classList.add('hidden');
+    if(fxControls) fxControls.classList.remove('hidden');
+    
+    const track = tracks.find(t => t.id === id);
+    if(selectedTrackName) selectedTrackName.innerText = track.name;
+    
+    effectButtons.forEach(btn => {
+        btn.classList.remove('selected');
+        if(btn.dataset.fx === track.currentEffect) btn.classList.add('selected');
+    });
+
+    updateXYCursor(track.effectParams.x, track.effectParams.y);
+    updateLabels(track.currentEffect);
+}
+
+function deselectAll() {
+    selectedTrackId = null;
+    if(noTrackSelectedMsg) noTrackSelectedMsg.classList.remove('hidden');
+    if(fxControls) fxControls.classList.add('hidden');
+    document.querySelectorAll('.loop-item').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('.select-btn').forEach(b => {
+        b.classList.remove('active');
+        b.innerText = "EDIT FX";
+    });
+}
+
+effectButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        if (!selectedTrackId) return;
+        const type = e.target.dataset.fx;
+        const track = tracks.find(t => t.id === selectedTrackId);
+        track.setEffect(type);
+        effectButtons.forEach(b => b.classList.remove('selected'));
+        e.target.classList.add('selected');
+        updateLabels(type);
+    });
+});
+
+function updateLabels(type) {
+    const lx = document.getElementById('labelX');
+    const ly = document.getElementById('labelY');
+    if(type === 'filter' || type === 'highpass' || type === 'bandpass') { lx.innerText = "X: Cutoff"; ly.innerText = "Y: Res"; }
+    else if(type === 'autofilter') { lx.innerText = "X: Rate"; ly.innerText = "Y: Depth"; }
+    else if(type === 'phaser') { lx.innerText = "X: Rate"; ly.innerText = "Y: Depth"; }
+    else if(type === 'flanger') { lx.innerText = "X: Rate"; ly.innerText = "Y: Feedback"; }
+    else if(type === 'chorus') { lx.innerText = "X: Rate"; ly.innerText = "Y: Depth"; }
+    else if(type === 'tremolo') { lx.innerText = "X: Rate"; ly.innerText = "Y: Depth"; }
+    else if(type === 'vibrato') { lx.innerText = "X: Rate"; ly.innerText = "Y: Depth"; }
+    else if(type === 'delay' || type === 'echo' || type === 'pingpong') { lx.innerText = "X: Time"; ly.innerText = "Y: Feedback"; }
+    else if(type === 'reverb') { lx.innerText = "X: Size"; ly.innerText = "Y: Mix"; }
+    else if(type === 'distortion' || type === 'overdrive' || type === 'saturation') { lx.innerText = "X: Drive"; ly.innerText = "Y: Tone"; }
+    else if(type === 'bitcrusher') { lx.innerText = "X: Bits"; ly.innerText = "Y: Rate"; }
+    else if(type === 'compressor') { lx.innerText = "X: Thresh"; ly.innerText = "Y: Ratio"; }
+    else if(type === 'limiter') { lx.innerText = "X: Thresh"; ly.innerText = "Y: Release"; }
+    else if(type === 'widener') { lx.innerText = "X: Width"; ly.innerText = "Y: Mix"; }
+    else if(type === 'panner') { lx.innerText = "X: Pan"; ly.innerText = "Y: Level"; }
+    else if(type === 'pitch') { lx.innerText = "X: Shift"; ly.innerText = "Y: Mix"; }
+    else if(type === 'harmonizer') { lx.innerText = "X: Interval"; ly.innerText = "Y: Mix"; }
+    else if(type === 'granular') { lx.innerText = "X: Grain"; ly.innerText = "Y: Spray"; }
+    else { lx.innerText = "X: --"; ly.innerText = "Y: --"; }
+}
+
+let isDragging = false;
+if(xyPad) {
+    xyPad.addEventListener('mousedown', (e) => { isDragging = true; handleXY(e); });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    window.addEventListener('mousemove', (e) => { if(isDragging) handleXY(e); });
+}
+
+function handleXY(e) {
+    if (!selectedTrackId) return;
+    const rect = xyPad.getBoundingClientRect();
+    let x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    let y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
+    const normX = x / rect.width;
+    const normY = 1.0 - (y / rect.height);
+    updateXYCursor(normX, normY);
+    const track = tracks.find(t => t.id === selectedTrackId);
+    if (track) track.updateEffectParams(normX, normY);
+}
+
+function updateXYCursor(normX, normY) {
+    if(xyCursor) {
+        xyCursor.style.left = `${normX * 100}%`;
+        xyCursor.style.top = `${(1.0 - normY) * 100}%`;
+    }
+}
+
+document.getElementById('playAllBtn').addEventListener('click', () => {
+    playArrangement();
+});
+document.getElementById('stopAllBtn').addEventListener('click', () => {
+    stopArrangement();
+    tracks.forEach(t => {
+        t.stop();
+        updatePlayButtonUI(t.id, false);
+    });
+    if (drumRecording) {
+        drumRecording = false;
+        updateDrumRecordUI();
+    }
+});
+
+// --- Resampling ---
+let isResampling = false;
+if (resampleBtn) {
+    resampleBtn.addEventListener('click', async () => {
+        if (!selectedTrackId) return;
+        const ctx = initAudioContext();
+        const sourceTrack = tracks.find(t => t.id === selectedTrackId);
+        
+        if (isResampling) {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+            sourceTrack.stop();
+            updatePlayButtonUI(sourceTrack.id, false);
+            resampleBtn.innerHTML = "⚠ Resample (Record FX)";
+            resampleBtn.classList.remove('active');
+            recordBtn.disabled = false;
+            resampleBtn.style.background = "#d68a28";
+            isResampling = false;
+        } else {
+            recordBtn.disabled = true;
+            const dest = ctx.createMediaStreamDestination();
+            sourceTrack.gainNode.connect(dest);
+            mediaRecorder = new MediaRecorder(dest.stream);
+            chunks = [];
+            mediaRecorder.ondataavailable = e => chunks.push(e.data);
+            mediaRecorder.onstop = async () => {
+                const blob = new Blob(chunks, { 'type' : 'audio/ogg; codecs=opus' });
+                const arrayBuffer = await blob.arrayBuffer();
+                const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+                createTrack(audioBuffer);
+                sourceTrack.gainNode.disconnect(dest);
+            };
+            mediaRecorder.start();
+            // Resample at current global speed
+            sourceTrack.play(globalPlaybackRate);
+            updatePlayButtonUI(sourceTrack.id, true);
+            isResampling = true;
+            resampleBtn.innerHTML = "■ STOP RESAMPLE";
+            resampleBtn.style.background = "#ff4444";
+            resampleBtn.classList.add('active');
+        }
+    });
+}
+
+// --- Timeline / Arrangement ---
+function getDefaultClipDuration(track) {
+    const rawDur = track.buffer.duration;
+    const trimmed = rawDur * (track.trimEnd - track.trimStart);
+    const rate = Math.max(0.1, track.localRate);
+    return Math.max(MIN_CLIP_DURATION, trimmed / rate);
+}
+
+function createClip(trackId, startTime, duration) {
+    const step = getGridStepSeconds();
+    const snappedStart = snapEnabled ? snapTime(startTime) : startTime;
+    let snappedDuration = duration;
+    if (snapEnabled && step > 0) {
+        snappedDuration = Math.round(duration / step) * step;
+    }
+    const clip = {
+        id: clipIdCounter++,
+        trackId,
+        start: Math.max(0, snappedStart),
+        duration: Math.max(MIN_CLIP_DURATION, snappedDuration)
+    };
+    clips.push(clip);
+    renderTimeline();
+}
+
+function getTimelineLength() {
+    const maxEnd = clips.reduce((max, clip) => Math.max(max, clip.start + clip.duration), 0);
+    return Math.max(DEFAULT_TIMELINE_SECONDS, Math.ceil(maxEnd + 5));
+}
+
+function renderTimeline() {
+    if (!timelineBody || !timelineRuler) return;
+
+    const timelineSeconds = getTimelineLength();
+    timelineSecondsState = timelineSeconds;
+    const timelineWidth = timelineSeconds * TIMELINE_SCALE;
+
+    timelineRuler.innerHTML = '';
+    timelineRuler.style.width = `${timelineWidth}px`;
+
+    const secondsPerBeat = getSecondsPerBeat();
+    const totalBeats = Math.ceil(timelineSeconds / secondsPerBeat);
+
+    for (let b = 0; b <= totalBeats; b++) {
+        const tick = document.createElement('div');
+        const isBar = b % beatsPerBar === 0;
+        tick.className = `timeline-tick${isBar ? ' major' : ''}`;
+        tick.style.left = `${b * secondsPerBeat * TIMELINE_SCALE}px`;
+        timelineRuler.appendChild(tick);
+        if (isBar) {
+            const label = document.createElement('div');
+            label.className = 'timeline-tick-label';
+            label.style.left = `${b * secondsPerBeat * TIMELINE_SCALE}px`;
+            label.innerText = `${Math.floor(b / beatsPerBar) + 1}`;
+            timelineRuler.appendChild(label);
+        }
+    }
+
+    renderLoopRegion(timelineWidth);
+
+    timelineBody.innerHTML = '';
+
+    const drumRow = document.createElement('div');
+    drumRow.className = 'timeline-row drum-row';
+
+    const drumLabel = document.createElement('div');
+    drumLabel.className = 'timeline-label';
+    drumLabel.innerText = 'DRUMS';
+
+    const drumLane = document.createElement('div');
+    drumLane.className = 'timeline-lane drum-lane';
+    drumLane.style.width = `${timelineWidth}px`;
+
+    const drumRowHeight = getDrumRowHeight();
+    const subRowHeight = drumRowHeight / padBank.length;
+
+    padBank.forEach((_, idx) => {
+        const sub = document.createElement('div');
+        sub.className = 'drum-subrow';
+        sub.dataset.pad = idx;
+        sub.style.top = `${idx * subRowHeight}px`;
+        drumLane.appendChild(sub);
+    });
+
+    drumPattern.events.forEach(ev => {
+        const hit = document.createElement('div');
+        hit.className = 'drum-hit';
+        hit.dataset.pad = ev.padIndex;
+        hit.dataset.time = ev.time;
+        hit.style.left = `${ev.time * TIMELINE_SCALE}px`;
+        hit.style.top = `${ev.padIndex * subRowHeight}px`;
+        hit.style.width = `${Math.max(10, getGridStepSeconds() * TIMELINE_SCALE - 2)}px`;
+        hit.innerText = PAD_KEYS[ev.padIndex] ? PAD_KEYS[ev.padIndex].toUpperCase() : '';
+        hit.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const padIndex = parseInt(hit.dataset.pad, 10);
+            const time = parseFloat(hit.dataset.time);
+            const idx = drumPattern.events.findIndex(ev2 => ev2.padIndex === padIndex && Math.abs(ev2.time - time) < 0.0005);
+            if (idx !== -1) drumPattern.events.splice(idx, 1);
+            renderTimeline();
+        });
+        drumLane.appendChild(hit);
+    });
+
+    drumLane.addEventListener('click', (e) => {
+        const rect = drumLane.getBoundingClientRect();
+        const scrollLeft = timelineEl ? timelineEl.scrollLeft : 0;
+        const x = Math.max(0, e.clientX - rect.left + scrollLeft);
+        const y = Math.max(0, e.clientY - rect.top);
+        const padIndex = Math.min(padBank.length - 1, Math.max(0, Math.floor(y / subRowHeight)));
+        const time = x / TIMELINE_SCALE;
+        addDrumHit(padIndex, time, false);
+        renderTimeline();
+    });
+
+    drumRow.appendChild(drumLabel);
+    drumRow.appendChild(drumLane);
+    timelineBody.appendChild(drumRow);
+
+    tracks.forEach(track => {
+        const row = document.createElement('div');
+        row.className = 'timeline-row';
+
+        const label = document.createElement('div');
+        label.className = 'timeline-label';
+        label.innerText = track.name;
+
+        const lane = document.createElement('div');
+        lane.className = 'timeline-lane';
+        lane.dataset.trackId = track.id;
+        lane.style.width = `${timelineWidth}px`;
+
+        lane.addEventListener('dblclick', (e) => {
+            const rect = lane.getBoundingClientRect();
+            const scrollLeft = timelineEl ? timelineEl.scrollLeft : 0;
+            const x = Math.max(0, e.clientX - rect.left + scrollLeft);
+            const start = x / TIMELINE_SCALE;
+            createClip(track.id, start, getDefaultClipDuration(track));
+        });
+
+        clips.filter(c => c.trackId === track.id).forEach(clip => {
+            const clipEl = document.createElement('div');
+            clipEl.className = 'timeline-clip';
+            clipEl.dataset.clipId = clip.id;
+            clipEl.style.left = `${clip.start * TIMELINE_SCALE}px`;
+            clipEl.style.width = `${clip.duration * TIMELINE_SCALE}px`;
+            clipEl.innerText = track.name;
+
+            const handleL = document.createElement('div');
+            handleL.className = 'clip-handle left';
+            const handleR = document.createElement('div');
+            handleR.className = 'clip-handle right';
+            clipEl.appendChild(handleL);
+            clipEl.appendChild(handleR);
+
+            clipEl.addEventListener('mousedown', (e) => startClipDrag(e, clip.id, 'move'));
+            clipEl.addEventListener('dblclick', (e) => e.stopPropagation());
+            handleL.addEventListener('mousedown', (e) => startClipDrag(e, clip.id, 'resize-left'));
+            handleR.addEventListener('mousedown', (e) => startClipDrag(e, clip.id, 'resize-right'));
+
+            lane.appendChild(clipEl);
+        });
+
+        row.appendChild(label);
+        row.appendChild(lane);
+        timelineBody.appendChild(row);
+    });
+}
+
+function renderLoopRegion(timelineWidth) {
+    if (!timelineRuler) return;
+    if (loopRegion.end - loopRegion.start < MIN_CLIP_DURATION) {
+        loopRegion.end = loopRegion.start + 1;
+    }
+    loopRegion.start = Math.max(0, Math.min(loopRegion.start, timelineSecondsState - MIN_CLIP_DURATION));
+    loopRegion.end = Math.max(loopRegion.start + MIN_CLIP_DURATION, Math.min(loopRegion.end, timelineSecondsState));
+
+    const region = document.createElement('div');
+    region.className = 'timeline-loop-region';
+    region.style.left = `${loopRegion.start * TIMELINE_SCALE}px`;
+    region.style.width = `${(loopRegion.end - loopRegion.start) * TIMELINE_SCALE}px`;
+    region.innerText = loopEnabled ? "LOOP" : "REGION";
+
+    const handleL = document.createElement('div');
+    handleL.className = 'loop-handle left';
+    const handleR = document.createElement('div');
+    handleR.className = 'loop-handle right';
+    region.appendChild(handleL);
+    region.appendChild(handleR);
+
+    region.addEventListener('mousedown', (e) => startLoopDrag(e, 'move'));
+    handleL.addEventListener('mousedown', (e) => startLoopDrag(e, 'resize-left'));
+    handleR.addEventListener('mousedown', (e) => startLoopDrag(e, 'resize-right'));
+    region.addEventListener('dblclick', (e) => e.stopPropagation());
+
+    timelineRuler.appendChild(region);
+
+    if (timelineLoopOverlay) {
+        timelineLoopOverlay.style.left = `${loopRegion.start * TIMELINE_SCALE}px`;
+        timelineLoopOverlay.style.width = `${(loopRegion.end - loopRegion.start) * TIMELINE_SCALE}px`;
+        const rowHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--timeline-row-height')) || 56;
+        const drumHeight = getDrumRowHeight();
+        timelineLoopOverlay.style.height = `${drumHeight + (tracks.length * rowHeight)}px`;
+    }
+}
+
+let dragState = null;
+let loopDragState = null;
+
+function startClipDrag(e, clipId, mode) {
+    e.stopPropagation();
+    e.preventDefault();
+    const clip = clips.find(c => c.id === clipId);
+    if (!clip) return;
+    dragState = {
+        clipId,
+        mode,
+        startX: e.clientX,
+        origStart: clip.start,
+        origDuration: clip.duration
+    };
+}
+
+window.addEventListener('mousemove', (e) => {
+    if (!dragState) return;
+    const clip = clips.find(c => c.id === dragState.clipId);
+    if (!clip) return;
+
+    const dx = (e.clientX - dragState.startX) / TIMELINE_SCALE;
+    const snap = isSnapActive(e);
+
+    if (dragState.mode === 'move') {
+        const rawStart = dragState.origStart + dx;
+        const nextStart = snap ? snapTime(rawStart) : rawStart;
+        clip.start = Math.max(0, nextStart);
+    } else if (dragState.mode === 'resize-left') {
+        const end = dragState.origStart + dragState.origDuration;
+        let newStart = dragState.origStart + dx;
+        if (snap) newStart = snapTime(newStart);
+        newStart = Math.max(0, Math.min(newStart, end - MIN_CLIP_DURATION));
+        clip.start = newStart;
+        clip.duration = Math.max(MIN_CLIP_DURATION, end - newStart);
+    } else if (dragState.mode === 'resize-right') {
+        let end = dragState.origStart + dragState.origDuration + dx;
+        if (snap) end = snapTime(end);
+        clip.duration = Math.max(MIN_CLIP_DURATION, end - dragState.origStart);
+    }
+
+    const clipEl = document.querySelector(`.timeline-clip[data-clip-id="${clip.id}"]`);
+    if (clipEl) {
+        clipEl.style.left = `${clip.start * TIMELINE_SCALE}px`;
+        clipEl.style.width = `${clip.duration * TIMELINE_SCALE}px`;
+    }
+});
+
+window.addEventListener('mouseup', () => {
+    if (dragState) {
+        dragState = null;
+        renderTimeline();
+    }
+});
+
+function startLoopDrag(e, mode) {
+    e.stopPropagation();
+    e.preventDefault();
+    loopDragState = {
+        mode,
+        startX: e.clientX,
+        origStart: loopRegion.start,
+        origEnd: loopRegion.end
+    };
+}
+
+window.addEventListener('mousemove', (e) => {
+    if (!loopDragState) return;
+    const dx = (e.clientX - loopDragState.startX) / TIMELINE_SCALE;
+    const snap = isSnapActive(e);
+
+    if (loopDragState.mode === 'move') {
+        const length = loopDragState.origEnd - loopDragState.origStart;
+        let newStart = loopDragState.origStart + dx;
+        if (snap) newStart = snapTime(newStart);
+        newStart = Math.max(0, Math.min(newStart, timelineSecondsState - length));
+        loopRegion.start = newStart;
+        loopRegion.end = newStart + length;
+    } else if (loopDragState.mode === 'resize-left') {
+        let newStart = loopDragState.origStart + dx;
+        if (snap) newStart = snapTime(newStart);
+        newStart = Math.max(0, Math.min(newStart, loopRegion.end - MIN_CLIP_DURATION));
+        loopRegion.start = newStart;
+    } else if (loopDragState.mode === 'resize-right') {
+        let newEnd = loopDragState.origEnd + dx;
+        if (snap) newEnd = snapTime(newEnd);
+        newEnd = Math.max(loopRegion.start + MIN_CLIP_DURATION, Math.min(newEnd, timelineSecondsState));
+        loopRegion.end = newEnd;
+    }
+
+    updateLoopRegionUI();
+});
+
+window.addEventListener('mouseup', () => {
+    if (loopDragState) {
+        loopDragState = null;
+        renderTimeline();
+        if (arrangementPlaying && loopEnabled) {
+            playArrangement();
+        }
+    }
+});
+
+function updateLoopRegionUI() {
+    const region = document.querySelector('.timeline-loop-region');
+    if (region) {
+        region.style.left = `${loopRegion.start * TIMELINE_SCALE}px`;
+        region.style.width = `${(loopRegion.end - loopRegion.start) * TIMELINE_SCALE}px`;
+        region.innerText = loopEnabled ? "LOOP" : "REGION";
+    }
+    if (timelineLoopOverlay) {
+        timelineLoopOverlay.style.left = `${loopRegion.start * TIMELINE_SCALE}px`;
+        timelineLoopOverlay.style.width = `${(loopRegion.end - loopRegion.start) * TIMELINE_SCALE}px`;
+        const rowHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--timeline-row-height')) || 56;
+        const drumHeight = getDrumRowHeight();
+        timelineLoopOverlay.style.height = `${drumHeight + (tracks.length * rowHeight)}px`;
+    }
+}
+
+function playArrangement() {
+    const ctx = initAudioContext();
+    stopArrangement();
+    if (clips.length === 0) return;
+    tracks.forEach(t => {
+        t.stop();
+        updatePlayButtonUI(t.id, false);
+    });
+
+    arrangementSources = [];
+    arrangementPlaying = true;
+    const now = ctx.currentTime + 0.05;
+    arrangementStartTime = loopEnabled ? now - loopRegion.start : now;
+
+    if (loopEnabled) {
+        const loopLength = Math.max(MIN_CLIP_DURATION, loopRegion.end - loopRegion.start);
+        let nextCycleTime = now;
+
+        const scheduleCycle = () => {
+            if (!arrangementPlaying || !loopEnabled) return;
+            scheduleArrangementCycle(nextCycleTime, loopRegion.start, loopRegion.end);
+            nextCycleTime += loopLength;
+            const waitMs = Math.max(20, (nextCycleTime - ctx.currentTime - 0.1) * 1000);
+            loopTimer = window.setTimeout(scheduleCycle, waitMs);
+        };
+
+        scheduleCycle();
+    } else {
+        scheduleArrangementCycle(now, 0, Number.POSITIVE_INFINITY);
+    }
+}
+
+function stopArrangement() {
+    arrangementSources.forEach(source => {
+        try { source.stop(); } catch (e) {}
+        try { source.disconnect(); } catch (e) {}
+    });
+    arrangementSources = [];
+    arrangementPlaying = false;
+    if (loopTimer) {
+        window.clearTimeout(loopTimer);
+        loopTimer = null;
+    }
+}
+
+function scheduleArrangementCycle(startAt, windowStart, windowEnd) {
+    const ctx = initAudioContext();
+    scheduleDrumPattern(startAt, windowStart, windowEnd);
+    clips.forEach(clip => {
+        const clipStart = clip.start;
+        const clipEnd = clip.start + clip.duration;
+        const overlapStart = Math.max(clipStart, windowStart);
+        const overlapEnd = Math.min(clipEnd, windowEnd);
+        if (overlapEnd <= overlapStart) return;
+
+        const track = tracks.find(t => t.id === clip.trackId);
+        if (!track) return;
+
+        const source = ctx.createBufferSource();
+        source.buffer = track.buffer;
+        source.loop = true;
+
+        const duration = track.buffer.duration;
+        source.loopStart = duration * track.trimStart;
+        source.loopEnd = duration * track.trimEnd;
+        if (source.loopEnd - source.loopStart < 0.01) {
+            source.loop = false;
+        }
+
+        const finalRate = track.localRate * globalPlaybackRate;
+        const rate = Math.max(0.1, Math.min(finalRate, 4.0));
+        source.playbackRate.value = rate;
+
+        const overlapOffset = overlapStart - clipStart;
+        const offsetInBuffer = source.loopStart + overlapOffset * rate;
+        const segmentStart = startAt + (overlapStart - windowStart);
+        const segmentEnd = startAt + (overlapEnd - windowStart);
+
+        source.connect(track.fxInput);
+        source.start(segmentStart, offsetInBuffer);
+        source.stop(segmentEnd);
+        arrangementSources.push(source);
+    });
+}
+
+function scheduleDrumPattern(startAt, windowStart, windowEnd) {
+    if (!drumPattern.events.length) return;
+    const ctx = initAudioContext();
+    const baseTime = startAt - windowStart;
+    const baseStart = loopEnabled ? loopRegion.start : 0;
+    const baseLength = loopEnabled ? (loopRegion.end - loopRegion.start) : (drumPattern.length || (beatsPerBar * getSecondsPerBeat()));
+    const loopLength = Math.max(MIN_CLIP_DURATION, baseLength);
+    drumPattern.events.forEach(ev => {
+        if (!padBank[ev.padIndex] || !padBank[ev.padIndex].buffer) return;
+        let timelineTime = baseStart + ev.time;
+        if (loopEnabled) {
+            timelineTime = baseStart + (ev.time % loopLength);
+        }
+        if (timelineTime < windowStart || timelineTime >= windowEnd) return;
+        const when = baseTime + timelineTime;
+        if (when < ctx.currentTime) return;
+        const source = ctx.createBufferSource();
+        source.buffer = padBank[ev.padIndex].buffer;
+        source.connect(ctx.destination);
+        source.start(when);
+        arrangementSources.push(source);
+    });
+}
+
+
+// --- EXPORT LOGIC ---
+const exportBtn = document.getElementById('exportBtn');
+if (exportBtn) {
+    exportBtn.addEventListener('click', async () => {
+        if (tracks.length === 0) return alert("No tracks to export.");
+        
+        const oldText = exportBtn.innerText;
+        exportBtn.innerText = "Rendering...";
+        exportBtn.disabled = true;
+
+        try {
+            // 1. Calculate Length
+            let maxDuration = 0;
+            tracks.forEach(t => {
+                const rawDur = t.buffer.duration;
+                const trimLen = rawDur * (t.trimEnd - t.trimStart);
+                const finalDur = trimLen / (t.localRate * globalPlaybackRate);
+                if (finalDur > maxDuration) maxDuration = finalDur;
+            });
+            
+            // Render 4 loops worth (or minimum 10 seconds)
+            const renderDuration = Math.max(maxDuration * 4, 10.0); 
+
+            // 2. Setup Offline Context
+            const offlineCtx = new OfflineAudioContext(
+                2, 
+                Math.ceil(renderDuration * 44100), 
+                44100
+            );
+
+            // 3. Clone Tracks
+            tracks.forEach(t => {
+                // Create Ghost
+                const ghost = new Track(t.id, t.buffer, "Ghost");
+                
+                // FORCE initialize on Offline Context
+                // This will create new Filter/Delay/Gain nodes on the offline graph
+                ghost.initAudioGraph(offlineCtx); 
+                
+                // Copy State
+                ghost.currentEffect = t.currentEffect;
+                ghost.effectParams = t.effectParams;
+                ghost.trimStart = t.trimStart;
+                ghost.trimEnd = t.trimEnd;
+                ghost.localRate = t.localRate;
+
+                // Wire up Effects
+                ghost.refreshEffectRouting();
+                
+                // Apply Params (Crucial: The Track.js update will now use setValueAtTime because t=0)
+                ghost.updateEffectParams(t.effectParams.x, t.effectParams.y);
+
+                // Connect to Offline Master
+                ghost.gainNode.connect(offlineCtx.destination);
+
+                // Setup Source
+                const source = offlineCtx.createBufferSource();
+                source.buffer = t.buffer;
+                source.loop = true;
+                
+                const duration = t.buffer.duration;
+                source.loopStart = duration * t.trimStart;
+                source.loopEnd = duration * t.trimEnd;
+                
+                // Prevent glitching if trim is near zero
+                if (source.loopEnd - source.loopStart < 0.01) source.loop = false;
+
+                const finalRate = t.localRate * globalPlaybackRate;
+                source.playbackRate.value = finalRate;
+
+                // Connect to the Ghost's FX Chain
+                source.connect(ghost.fxInput);
+                
+                // Start
+                source.start(0, source.loopStart);
+            });
+
+            // 4. Render
+            const renderedBuffer = await offlineCtx.startRendering();
+
+            // 5. Save
+            const blob = bufferToWav(renderedBuffer, renderedBuffer.length);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `LoopStation_Mix_${Date.now()}.wav`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+
+        } catch (err) {
+            console.error(err);
+            alert("Export failed: " + err.message);
+        }
+
+        exportBtn.innerText = oldText;
+        exportBtn.disabled = false;
+    });
+}
+
+renderTimeline();
